@@ -54,6 +54,7 @@ Iterations for output 3: 3
 See `trainingOutput.out`. The data corresponds with the `data/train.txt` file.
 
 #### Precision and cecall
+```
 Iris setosa classification
 Precision: 100, Recall: 100
 
@@ -62,12 +63,14 @@ Precision: 95, Recall: 65.5172
 
 Iris virginica classification
 Precision: 75, Recall: 100
+```
 
 
 ### Third party library
 The perceptron module in scikit-learn for python3 was used. It can be run using Python 3.6.
 The source code can be found in `Perceptron.py`. The precision and recall values are:
 
+```
 Iris setosa classification
 Precision: 100, Recall: 100
 
@@ -76,6 +79,7 @@ Precision: 33.33, Recall: 100
 
 Iris virginica classification
 Precision: 100, Recall: 60
+```
 
 The sklearn perceptron has similar results to the model I used. The important part is that it achieved 100% precision and recall, which should theoretically occur since it is linearly serparable.
 
