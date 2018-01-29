@@ -16,9 +16,9 @@
 
 
 Perceptron::Perceptron(int _inputs, int _outputs) : 
-    numInputs(_inputs), numOutputs(_outputs), c(0.4)
+    numInputs(_inputs), numOutputs(_outputs), c(0.3)
 {
-    srand(0x8c23); // Seed for RNG.
+    srand(time(nullptr)); // Seed for RNG.
 
     // Store weights matrix as a flat array. Add plus 1
     // for the bias weight.
@@ -123,7 +123,7 @@ int Perceptron::predict(float const weightsPtr[], float const input[])
         a += weight * xi;
     }
     // Add the bias weight
-    a -= weightsPtr[numInputs];
+    a += weightsPtr[numInputs];
     return a >= 0;
 }
 
@@ -143,17 +143,7 @@ void Perceptron::updateWeights(
     int expectedOutput)
 {
         // Get the sum of the weighted inputs
-        float a = 0;
-        for (int inputIndex = 0; inputIndex < numInputs; inputIndex++)
-        {
-            float weight = weightsPtr[inputIndex];
-            float xi = input[inputIndex];
-            a += weight * xi;
-        }
-        // Add the bias weight
-        a -= weightsPtr[numInputs];
-        int predictedOutput = a >= 0;
-
+        int predictedOutput = predict(weightsPtr, input);
         // Apply simple feedback if the predicted does not match the expected
         if (predictedOutput != expectedOutput)
         {
@@ -163,7 +153,7 @@ void Perceptron::updateWeights(
                 float xi = input[inputIndex];
                 weightsPtr[inputIndex] += factor * c * xi;
             }
-            weightsPtr[numInputs] += c;
+            weightsPtr[numInputs] += factor * c;
         }
 }
 

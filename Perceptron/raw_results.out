@@ -1,24 +1,24 @@
 Before Training:
 Weights for output: 1
--29, 12, -15, -12, 71
+-16, -21, -18, 51, 62
 Weights for output: 2
-77, 70, 31, 3, -41
+-57, -63, 83, -62, -67
 Weights for output: 3
-36, 62, 34, 77, -40
+-29, 21, -97, -63, 84
 
-Iterations for output 0: 8
-Iterations for output 1: 4
-Iterations for output 2: 3
+Iterations for output 0: 23
+Iterations for output 1: 56
+Iterations for output 2: 32
 
 After Training:
 Weights for output: 1
-4.68, 34.96, -10.72, -12.2, 82.6
+-1.57, 2.94, -35.97, 38.7, 65.6
 Weights for output: 2
--10.88, 10.04, 0.759995, -4.52, -17
+11.1, -10.89, 22.9101, -94.6701, -45.4
 Weights for output: 3
--35.08, 12.88, 14.88, 73.8799, -19.6
+-22.58, -13.68, 27.08, -1.35003, 75.2999
 
 Precision: 100, Recall: 100
 Precision: 95, Recall: 65.5172
-Precision: 75, Recall: 100
-Sum squared error: 16
+Precision: 55, Recall: 100
+Sum squared error: 20
