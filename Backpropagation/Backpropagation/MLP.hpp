@@ -30,7 +30,8 @@ private:
     float validateModel(
        std::vector< std::vector<float> >& X,
        std::vector< std::vector<int> >& d,
-       int firstValidationIndex);
+       int firstValidationIndex,
+       float* percentageCorrect);
     
     void batchUpdate(
         std::vector< std::vector<float> >& X,
@@ -113,7 +114,6 @@ public:
 };
 
 float sigmoid(float x);
-float dsigmoid(float x);
 float err(float d, float y, float epsilon=0);
 float mse(float d, float y, float epsilon=0);
 

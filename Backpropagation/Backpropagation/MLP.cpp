@@ -51,19 +51,23 @@ void MLP::printWeights() const {
 
 std::vector<float> MLP::predict(std::vector<float> inputs)
 {
-    std::vector<float>& inBetween = inputs;
+    auto& buf = inputs;
+    
     for (int i = 0; i < layers.size(); i++) {
-        inBetween = layers[i].fire(inBetween);
+        buf = layers[i].fire(buf);
         
-        std::cout << "Output " << i << ": \n";
-        for (float& f : inBetween)
+        if (verbose)
         {
-            std::cout << f << ' ';
+            std::cout << "Output " << i << ": \n";
+            for (float& f : inputs)
+            {
+                std::cout << f << ' ';
+            }
+            std::cout << '\n';
         }
-        std::cout << '\n';
     }
     
-    return inBetween;
+    return buf;
 }
 
 void MLP::train(
@@ -79,9 +83,11 @@ void MLP::train(
     int lastTrainingIndex = (int)(0.8 * X.size());
     for (int epoch = 0; epoch < epochs; epoch++)
     {
+        float percentageCorrect = 0;
         batchUpdate(X, d, lastTrainingIndex);
-        //float error = validateModel(X, d, lastTrainingIndex + 1);
-        //std::cout << "Epoch: " << epoch << ", Error: " << error << '\n';
+        float error = validateModel(X, d, lastTrainingIndex + 1, &percentageCorrect);
+        std::cout << "Epoch: " << epoch << ", Error: " << error << '\n';
+        std::cout << "Epoch: " << epoch << ", % correct: " << percentageCorrect << '\n';
     }
 }
 
@@ -113,7 +119,7 @@ MLP::batchUpdate(std::vector< std::vector<float> >& X,
                                      .getPreviousOutputs());
         
         // Adjust hidden nodes
-        for (unsigned long j = layers.size() - 2; j > 0; j++)
+        for (unsigned long j = layers.size() - 2; j > 0; j--)
         {
             const std::vector<float>& inputs =
                     layers[j - 1].getPreviousOutputs();
@@ -148,19 +154,35 @@ MLP::batchUpdate(std::vector< std::vector<float> >& X,
 inline float
 MLP::validateModel(std::vector< std::vector<float> >& X,
                    std::vector< std::vector<int> >& d,
-                   int firstValidationIndex)
+                   int firstValidationIndex,
+                   float* percentageCorrect)
 {
     float error = 0;
     for (int i = firstValidationIndex; i < X.size(); i++)
     {
         std::vector<float> predicted = predict(X[i]);
         std::vector<int>& expected = d[i];
+        
+        float maxval = 0;
+        int maxIndex = 0;
         for (int j = 0; j < numOutputs; j++)
         {
             error += mse(expected[j], predicted[j]);
+            if (expected[j] > maxval)
+            {
+                maxval = expected[j];
+                maxIndex = j;
+            }
+        }
+        
+        if (predicted[maxIndex] == 1)
+        {
+            *percentageCorrect += 1;
         }
     }
     
+//    *percentageCorrect /= firstValidationIndex;
+
     return error;
 }
 
@@ -204,8 +226,8 @@ MLPLayer::adjustAsOutputLayer(const std::vector<int>& expected,
         deltas[i] = delta;
         for (int j = 0; j < numInputs; j++)
         {
-            int index = i * numOutputs + j;
-            dWeights[index] +=
+            int index = i * numInputs + j;
+            dWeights.at(index) +=
                     learningRate * deltas[i] * inputs[j];
         }
     }
@@ -217,30 +239,35 @@ MLPLayer::adjustAsHiddenLayer(const MLPLayer& nextLayer,
 {
     if (numOutputs != nextLayer.numberOfInputs())
     {
+        std::cout << "Number of outputs in next"
+                  << " layer is not equal to number of inputs." << std::endl;
+        throw -1;
+    }
+    
+    if (numInputs != inputs.size())
+    {
         std::cout
-        << "Number of outputs in next layer is not equal to number of inputs." << std::endl;
+        << numInputs << " does not match " << inputs.size() << std::endl;
         throw -1;
     }
     
     for (int i = 0; i < outputs.size(); i++)
     {
-        // Compute delta for output i
-        deltas[i] = 0;
-        for (int j = 0; j < outputs.size(); j++)
+        auto deltaL = 0.0;
+        for (int j = 0; j < nextLayer.numberOfOutputs(); j++)
         {
-            float y = outputs[i];
-            float dlWl = nextLayer.getWeights()[j] * nextLayer.getDeltas()[j];
-            deltas[i] += dlWl * y * y *  (1 - y * y);
+            int index = j * nextLayer.numberOfInputs() + i;
+            deltaL += nextLayer.weights.at(index) * nextLayer.deltas.at(j);
         }
-        
-        for (int j = 0; j < inputs.size(); j++)
+        auto y = outputs[i];
+        deltas[i] = deltaL * y * y * (1 - y * y);
+
+        for (int j = 0; j < numInputs; j++)
         {
-            int index = i * numOutputs + j;
-            dWeights[index]  += learningRate * deltas[i] * inputs[j];
+            int index = i * numInputs + j;
+            dWeights.at(index)  += learningRate * deltas[i] * inputs[j];
         }
     }
-    
-    
 }
 
 void MLPLayer::applyMomentum()
@@ -263,15 +290,18 @@ const std::vector<float>& MLPLayer::fire(const std::vector<float>& inputs)
 {
     if (inputs.size() != numInputs)
     {
+        std::cout << "Expected " << numInputs << " Inputs\n";
+        std::cout << "Recived" << inputs.size() << std::endl;
         throw -1;
     }
     
     for (int i = 0; i < numOutputs; i++)
     {
         float sum = 0;
-        for (int j = 0; j < inputs.size(); j++)
+        for (int j = 0; j < numInputs; j++)
         {
-            sum += weights[i * numOutputs + j] * inputs[j];
+            int index = i * numInputs + j;
+            sum += weights.at(index) * inputs[j];
         }
         outputs[i] = sigmoid(sum);
     }
@@ -281,14 +311,8 @@ const std::vector<float>& MLPLayer::fire(const std::vector<float>& inputs)
 
 inline float sigmoid(float x)
 {
-    float rval =  1/(1 + exp(- 0.01 * x));
+    float rval =  1/(1 + exp(- x));
     return rval;
-}
-
-inline float dsigmoid(float x)
-{
-    float y = sigmoid(x);
-    return y * (1 - y);
 }
 
 inline float err(float d, float y, float epsilon)
@@ -303,7 +327,7 @@ inline float err(float d, float y, float epsilon)
 inline float mse(float d, float y, float epsilon)
 {
     float error = err(d, y, epsilon);
-    if (error == 9)
+    if (error == 0)
     {
         return 0;
     }

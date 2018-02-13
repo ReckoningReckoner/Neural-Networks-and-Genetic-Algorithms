@@ -30,6 +30,10 @@ void parseData(
     file.open(filename);
 
     std::string strline;
+    
+    // Skip the header row
+    std::getline(file, strline);
+    
     while (std::getline(file, strline))
     {
         std::stringstream line(strline);
@@ -43,8 +47,8 @@ void parseData(
             std::getline(line, buf, ',');
             inputs[inputs.size() - 1][i] = stod(buf);
         }
-        inputs[inputs.size() - 1][numInputs] = 1;  // Add bias input
-
+        inputs[inputs.size() - 1][numInputs] = 1;
+        
         // Load an output vector
         std::getline(line, buf);
         int val = stoi(buf);
@@ -68,14 +72,25 @@ void parseData(
     file.close();
 }
 
+template <typename T>
+std::ostream& operator<<(std::ostream& output, std::vector<T> const& values)
+{
+    for (auto const& value : values)
+    {
+        output << value << " ";
+    }
+    return output;
+}
+
 int main(int argc, const char * argv[])
 {
+    const int numInputs = 2;
+    
     // Load the training data
     cout << "Loading training data...\n";
     std::vector< std::vector<float> > inputs;
     std::vector< std::vector<int> > outputs;
 
-    const int numInputs = 5;
     // In the training data, the csv has 5 input values and one output value.
     parseData<numInputs>("./data/training.csv", inputs, outputs);
     std::cout << "Loaded " << inputs.size()
@@ -83,21 +98,23 @@ int main(int argc, const char * argv[])
     
     // Initial model parameters. Add +1 for the bias
     // Number of inputs, batch size, epochs
-    MLP mlp(numInputs + 1, 500, 1, 0);
-    mlp.addLayer(6, 0.1, 0.5);
-    mlp.addLayer(3, 0.1, 0.5);
+    MLP mlp(numInputs + 1, 10, 10, 0.2, false);
+    mlp.addLayer(2, 0.5, 0.1);
+    mlp.addLayer(3, 0.2, 0.4);
 
     // Print initial weights
     mlp.printWeights();
     mlp.train(inputs, outputs);
+    mlp.printWeights();
     
-//    std::vector<float> results = mlp.predict(inputs[0]);
-//    for (float& r : results)
-//    {
-//        std::cout << r << ' ';
-//    }
-//    std::cout << '\n';
-
-  
+    auto r1 = mlp.predict(inputs[0]);
+    std::cout << r1 << std::endl;
+    
+    auto r2 = mlp.predict(inputs[1]);
+    std::cout << r2 << std::endl;
+    
+    auto r3 = mlp.predict(inputs[3]);
+    std::cout << r3 << std::endl;
+    
     return 0;
 }
