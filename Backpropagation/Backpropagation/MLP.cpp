@@ -49,25 +49,17 @@ void MLP::printWeights() const {
     }
 }
 
-std::vector<float> MLP::predict(std::vector<float> inputs)
+std::vector<float> MLP::predict(const std::vector<float>& inputs)
 {
-    auto& buf = inputs;
+    // Buf is a pointer to the most recent output vector. Buf can be passed
+    // When a neuron fires
+    const std::vector<float>* buf = &inputs;
     
     for (int i = 0; i < layers.size(); i++) {
-        buf = layers[i].fire(buf);
-        
-        if (verbose)
-        {
-            std::cout << "Output " << i << ": \n";
-            for (float& f : inputs)
-            {
-                std::cout << f << ' ';
-            }
-            std::cout << '\n';
-        }
+        buf = layers[i].fire(*buf);
     }
     
-    return buf;
+    return *buf;
 }
 
 void MLP::train(
@@ -181,8 +173,6 @@ MLP::validateModel(std::vector< std::vector<float> >& X,
         }
     }
     
-//    *percentageCorrect /= firstValidationIndex;
-
     return error;
 }
 
@@ -286,12 +276,27 @@ void MLPLayer::updateWeights()
     }
 }
 
-const std::vector<float>& MLPLayer::fire(const std::vector<float>& inputs)
+/*
+ * If inputs are x0, x1, x2
+ * and weights are:
+ *   w0 w1 w2
+ *   w3 w4 w5
+ *
+ * Then the outputs are:
+ * o0 = x0 w0 + x1 w1 + x2 w2
+ * o1 = x0 w3 + x1 w4 + x2 w5
+ *
+ * In this case, numInputs would be 3, num outputs are 2.
+ *
+ * numInputs is the number of columns, numOutputs is the number of
+ * rows.
+ */
+const std::vector<float>* MLPLayer::fire(const std::vector<float>& inputs)
 {
     if (inputs.size() != numInputs)
     {
         std::cout << "Expected " << numInputs << " Inputs\n";
-        std::cout << "Recived" << inputs.size() << std::endl;
+        std::cout << "Received" << inputs.size() << std::endl;
         throw -1;
     }
     
@@ -300,18 +305,19 @@ const std::vector<float>& MLPLayer::fire(const std::vector<float>& inputs)
         float sum = 0;
         for (int j = 0; j < numInputs; j++)
         {
+            // This should be equivalent to w[i][j]
             int index = i * numInputs + j;
             sum += weights.at(index) * inputs[j];
         }
         outputs[i] = sigmoid(sum);
     }
     
-    return outputs;
+    return &outputs;
 }
 
 inline float sigmoid(float x)
 {
-    float rval =  1/(1 + exp(- x));
+    float rval =  1/(1 + exp(-x));
     return rval;
 }
 

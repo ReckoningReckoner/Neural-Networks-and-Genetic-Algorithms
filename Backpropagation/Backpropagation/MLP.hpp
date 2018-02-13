@@ -46,7 +46,7 @@ public:
         bool verbose=false);
 
     void addLayer(int newNumOutputs, float learningRate, float momentum);
-    std::vector<float> predict(std::vector<float> inputs);
+    std::vector<float> predict(const std::vector<float>& inputs);
     void train(
         std::vector< std::vector<float> >& X,
         std::vector< std::vector<int> >& d);
@@ -80,7 +80,7 @@ public:
              int _numOutputs,
              float _learningRate,
              float _momentum);
-    const std::vector<float>& fire(const std::vector<float>& inputs);
+    const std::vector<float>* fire(const std::vector<float>& inputs);
     const std::vector<float>& getPreviousOutputs() const
     {
         return outputs;
