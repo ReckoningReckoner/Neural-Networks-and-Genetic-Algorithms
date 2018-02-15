@@ -33,25 +33,23 @@ void parseData(
     
     // Skip the header row
     std::getline(file, strline);
-    
     while (std::getline(file, strline))
     {
-        std::stringstream line(strline);
         std::string buf;
-        
+        std::stringstream line(strline);
+
         // Load the input vector;
-        std::vector<float> v(numInputs + 1, 0);
+        std::vector<float> v(numInputs, 0);
         inputs.push_back(v);
         for (int i  = 0; i < numInputs; i++)
         {
             std::getline(line, buf, ',');
             inputs[inputs.size() - 1][i] = stod(buf);
         }
-        inputs[inputs.size() - 1][numInputs] = 1;
-        
+
         // Load an output vector
         std::getline(line, buf);
-        int val = stoi(buf);
+        auto val = stoi(buf);
         switch (val)
         {
             case 5:
@@ -72,19 +70,9 @@ void parseData(
     file.close();
 }
 
-template <typename T>
-std::ostream& operator<<(std::ostream& output, std::vector<T> const& values)
-{
-    for (auto const& value : values)
-    {
-        output << value << " ";
-    }
-    return output;
-}
-
 int main(int argc, const char * argv[])
 {
-    const int numInputs = 2;
+    const auto numInputs = 4;
     
     // Load the training data
     cout << "Loading training data...\n";
@@ -98,23 +86,16 @@ int main(int argc, const char * argv[])
     
     // Initial model parameters. Add +1 for the bias
     // Number of inputs, batch size, epochs
-    MLP mlp(numInputs + 1, 10, 10, 0.2, false);
-    mlp.addLayer(2, 0.5, 0.1);
-    mlp.addLayer(3, 0.2, 0.4);
+    MLP mlp(numInputs, 30, 20, 0.2, false);
+    mlp.addLayer(6, 0.1, 0.0);
+    mlp.addLayer(3, 0.1, 0.0);
 
     // Print initial weights
     mlp.printWeights();
+    std::cout << std::endl;
+    
     mlp.train(inputs, outputs);
     mlp.printWeights();
-    
-    auto r1 = mlp.predict(inputs[0]);
-    std::cout << r1 << std::endl;
-    
-    auto r2 = mlp.predict(inputs[1]);
-    std::cout << r2 << std::endl;
-    
-    auto r3 = mlp.predict(inputs[3]);
-    std::cout << r3 << std::endl;
     
     return 0;
 }

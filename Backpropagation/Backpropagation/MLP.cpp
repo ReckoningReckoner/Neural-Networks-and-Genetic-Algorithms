@@ -35,12 +35,12 @@ void MLP::addLayer(int newNumOutputs, float learningRate, float momentum)
 }
 
 void MLP::printWeights() const {
-    int i = 0;
-    for (const MLPLayer& l : layers)
+    auto i = 0;
+    for (auto& l : layers)
     {
         std::cout << "Layer: " << i << std::endl;
         std::cout << "Inputs: " << l.numberOfInputs() << " Outputs: " << l.numberOfOutputs() << '\n';
-        for (const float& w : l.getWeights())
+        for (auto& w : l.getWeights())
         {
             std::cout << w << ' ';
         }
@@ -49,17 +49,16 @@ void MLP::printWeights() const {
     }
 }
 
-std::vector<float> MLP::predict(const std::vector<float>& inputs)
+const std::vector<float>& MLP::predict(const std::vector<float>& inputs)
 {
     // Buf is a pointer to the most recent output vector. Buf can be passed
     // When a neuron fires
-    const std::vector<float>* buf = &inputs;
-    
-    for (int i = 0; i < layers.size(); i++) {
+    auto* buf = &inputs;
+    for (auto i = 0; i < layers.size(); i++) {
         buf = layers[i].fire(*buf);
     }
     
-    return *buf;
+    return layers.back().getOutputs();
 }
 
 void MLP::train(
@@ -72,14 +71,12 @@ void MLP::train(
         throw -1;
     }
     
-    int lastTrainingIndex = (int)(0.8 * X.size());
-    for (int epoch = 0; epoch < epochs; epoch++)
+    auto lastTrainingIndex = (int)(0.8 * X.size());
+    for (auto epoch = 0; epoch < epochs; epoch++)
     {
-        float percentageCorrect = 0;
         batchUpdate(X, d, lastTrainingIndex);
-        float error = validateModel(X, d, lastTrainingIndex + 1, &percentageCorrect);
-        std::cout << "Epoch: " << epoch << ", Error: " << error << '\n';
-        std::cout << "Epoch: " << epoch << ", % correct: " << percentageCorrect << '\n';
+        auto accuracy = validateModel(X, d, 0);
+        std::cout << "Epoch: " << epoch << ", Accuracy: " << accuracy << '\n';
     }
 }
 
@@ -89,34 +86,29 @@ MLP::batchUpdate(std::vector< std::vector<float> >& X,
                  int lastTrainingIndex)
 {
     // Apply momentum based on the stored previous dWeights
-    for (MLPLayer& l : layers)
+    for (auto& l : layers)
     {
         l.applyMomentum();
     }
     
-    int i = 0;
+    auto i = 0;
     while (i < lastTrainingIndex)
     {
         // Predict will update the internal previous output values
         // in each layer. This prevents needless recomputation of
         // input values for each layer during backpropagation.
         predict(X[i]);
-        std::vector<int>& expected = d[i];
+        auto& expected = d[i];
         
         // Adjust output layer
-        // TODO: This will not work if the MLP has no hidden layers
-        layers[layers.size() - 1]
-            .adjustAsOutputLayer(expected,
-                                 layers[layers.size() - 2]
-                                     .getPreviousOutputs());
+        auto lastIndex = layers.size() - 1;
+        layers[lastIndex].adjustAsOutputLayer(expected, layers[lastIndex - 1].getOutputs());
         
         // Adjust hidden nodes
-        for (unsigned long j = layers.size() - 2; j > 0; j--)
+        for (auto j = layers.size() - 2; j > 0; j--)
         {
-            const std::vector<float>& inputs =
-                    layers[j - 1].getPreviousOutputs();
-            layers[j]
-                .adjustAsHiddenLayer(layers[j + 1], inputs);
+            auto& inputs = layers[j - 1].getOutputs();
+            layers[j].adjustAsHiddenLayer(layers[j + 1], inputs);
             
         }
         
@@ -126,7 +118,7 @@ MLP::batchUpdate(std::vector< std::vector<float> >& X,
         i++;
         if (i % batchSize == 0)
         {
-            for (MLPLayer& l : layers)
+            for (auto& l : layers)
             {
                 l.updateWeights();
             }
@@ -136,7 +128,7 @@ MLP::batchUpdate(std::vector< std::vector<float> >& X,
     {
         // Update weights, because the loop ended and they did
         // not get to properly update
-        for (MLPLayer& l : layers)
+        for (auto& l : layers)
         {
             l.updateWeights();
         }
@@ -146,34 +138,25 @@ MLP::batchUpdate(std::vector< std::vector<float> >& X,
 inline float
 MLP::validateModel(std::vector< std::vector<float> >& X,
                    std::vector< std::vector<int> >& d,
-                   int firstValidationIndex,
-                   float* percentageCorrect)
+                   int firstValidationIndex)
 {
-    float error = 0;
-    for (int i = firstValidationIndex; i < X.size(); i++)
+    auto accuracy = 0.0;
+    for (auto i = firstValidationIndex; i < X.size(); i++)
     {
-        std::vector<float> predicted = predict(X[i]);
-        std::vector<int>& expected = d[i];
-        
-        float maxval = 0;
-        int maxIndex = 0;
-        for (int j = 0; j < numOutputs; j++)
+        auto& input = X[i];
+        auto predicted = predict(input);
+        auto& expected = d[i];
+        if (verbose)
         {
-            error += mse(expected[j], predicted[j]);
-            if (expected[j] > maxval)
-            {
-                maxval = expected[j];
-                maxIndex = j;
-            }
+            std::cout << "Inputs: " << input << std::endl;
+            std::cout << "Predicted: " << predicted << std::endl;
+            std::cout << "Expected: " << expected << std::endl;
+            std::cout << std::endl;
         }
-        
-        if (predicted[maxIndex] == 1)
-        {
-            *percentageCorrect += 1;
-        }
+        accuracy += argmax(predicted) == argmax(expected);
     }
-    
-    return error;
+
+    return accuracy/X.size();
 }
 
 
@@ -182,87 +165,122 @@ MLPLayer::MLPLayer(int _numInputs,
                    int _numOutputs,
                    float _learningRate,
                    float _momentum) :
-    numInputs(_numInputs),
+    numInputs(_numInputs + 1),
     numOutputs(_numOutputs),
     learningRate(_learningRate),
     momentum(_momentum),
-    weights(_numInputs * _numOutputs, 0),
+    weights(numInputs * _numOutputs, 0),
     outputs(_numOutputs, 0),
     deltas(_numOutputs),
     dWeights(weights.size(), 0)
 {
 
-    for (int i = 0; i < weights.size(); i++) {
+    for (auto i = 0; i < weights.size(); i++) {
         // Set initial weights to random values between -1.0 to 1.0
-        weights[i] = (rand() % 101)/100.0 - 1;
+        weights[i] =  (rand() % 101)/100.0 - 1;
     }
     
 }
 
+/*
+ * If the model looks like this:
+ *    o0        o1
+ * w0 w1 w2  w3 w4 w5
+ *     x0 x1 x2
+ * Num inputs = 3, num outputs = 2
+ *
+ * Then, delta0 = (d0 - o0^2) * o0^2 * (1 - o0^2)
+ * Then, delta1 = (d1 - o1^2) * o1^2 * (1 - o1^2)
+ *
+ * dw0 = c * delta0 * x0
+ * dw1 = c * delta0 * x1
+ * dw2 = c * delta0 * x2
+ *
+ * dw3 = c * delta0 * x0
+ * dw4 = c * delta0 * x1
+ * dw5 = c * delta0 * x2
+ */
 void
 MLPLayer::adjustAsOutputLayer(const std::vector<int>& expected,
                               const std::vector<float>& inputs)
 {
-    for (int i = 0; i < numOutputs; i++)
+    for (auto i = 0; i < numOutputs; i++)
     {
         // The predicted outputs don't need to be passed in because
         // each layer keeps track of it's expected output.
-        float y = outputs[i];
-        float d = expected[i];
+        auto y = outputs[i];
+        auto d = expected[i];
         
         // This is equivalent to (d - y) * f'(a)
         // if f is the sigmoid function.
-        float delta = (d - y * y) * y * y * (1 - y * y);
-        deltas[i] = delta;
-        for (int j = 0; j < numInputs; j++)
+        auto delta = (d - y) * y * (1 - y);
+        deltas[i] = delta;  //  Store delta to reduce previous layer
+        
+        for (auto j = 0; j < numInputs - 1; j++)
         {
-            int index = i * numInputs + j;
-            dWeights.at(index) +=
-                    learningRate * deltas[i] * inputs[j];
+            dWeights[i * numInputs + j] += learningRate * deltas[i] * inputs[j];
         }
+        // Adjust bias node
+        dWeights[i * numInputs + numInputs - 1] += learningRate * deltas[i];
     }
 }
 
+/*
+ * Assume network is:
+ *
+ *    o0'               o1'
+ *  w0' w1' w2'    w3' w4' w5'
+ *      o0      o1       o2
+ *    w0  w1   w2  w3   w4  w5
+ *           x0  x1
+ *
+ *  delta0 = delta0' * w0'  + delta1' * w3'
+ */
 void
 MLPLayer::adjustAsHiddenLayer(const MLPLayer& nextLayer,
                               const std::vector<float>& inputs)
 {
-    if (numOutputs != nextLayer.numberOfInputs())
+    // Plus one because the next layer will have an implicit bias node
+    if (numOutputs + 1 != nextLayer.numberOfInputs())
     {
         std::cout << "Number of outputs in next"
                   << " layer is not equal to number of inputs." << std::endl;
         throw -1;
     }
     
-    if (numInputs != inputs.size())
+    if (numInputs != inputs.size() + 1)
     {
         std::cout
         << numInputs << " does not match " << inputs.size() << std::endl;
         throw -1;
     }
     
-    for (int i = 0; i < outputs.size(); i++)
+    for (auto i = 0; i < outputs.size(); i++)
     {
         auto deltaL = 0.0;
-        for (int j = 0; j < nextLayer.numberOfOutputs(); j++)
+        for (auto l = 0; l < nextLayer.numberOfOutputs(); l++)
         {
-            int index = j * nextLayer.numberOfInputs() + i;
-            deltaL += nextLayer.weights.at(index) * nextLayer.deltas.at(j);
+            int index = l * nextLayer.numberOfInputs() + i;
+            deltaL += nextLayer.weights[index] * nextLayer.deltas[l];
         }
+        
+        // Multiply outputs with the delta l * wjl term
         auto y = outputs[i];
-        deltas[i] = deltaL * y * y * (1 - y * y);
+        deltas[i] = deltaL * y * (1 - y);
 
-        for (int j = 0; j < numInputs; j++)
+        for (auto j = 0; j < numInputs - 1; j++)
         {
-            int index = i * numInputs + j;
-            dWeights.at(index)  += learningRate * deltas[i] * inputs[j];
+            dWeights[i * numInputs + j]  += learningRate * deltas[i] * inputs[j];
         }
+        
+        // Apply weight change to bias weight
+        dWeights[i * numInputs + numInputs - 1] += learningRate * deltas[i];
     }
 }
 
 void MLPLayer::applyMomentum()
 {
-    for (float& dw : dWeights)
+    for (auto& dw : dWeights)
     {
         dw *= momentum;
     }
@@ -270,7 +288,7 @@ void MLPLayer::applyMomentum()
 
 void MLPLayer::updateWeights()
 {
-    for (int i = 0; i < dWeights.size(); i++)
+    for (auto i = 0; i < dWeights.size(); i++)
     {
         weights[i] += dWeights[i];
     }
@@ -293,22 +311,23 @@ void MLPLayer::updateWeights()
  */
 const std::vector<float>* MLPLayer::fire(const std::vector<float>& inputs)
 {
-    if (inputs.size() != numInputs)
+    if (inputs.size() + 1 != numInputs)
     {
         std::cout << "Expected " << numInputs << " Inputs\n";
-        std::cout << "Received" << inputs.size() << std::endl;
+        std::cout << "Received " << inputs.size() << std::endl;
         throw -1;
     }
     
-    for (int i = 0; i < numOutputs; i++)
+    for (auto i = 0; i < numOutputs; i++)
     {
-        float sum = 0;
-        for (int j = 0; j < numInputs; j++)
+        auto sum = 0.0;
+        for (auto j = 0; j < numInputs - 1; j++)
         {
-            // This should be equivalent to w[i][j]
-            int index = i * numInputs + j;
-            sum += weights.at(index) * inputs[j];
+            sum += weights[i * numInputs + j] * inputs[j];
         }
+        
+        // Include bias node (input is always "1")
+        sum += weights[i * numInputs + numInputs - 1];
         outputs[i] = sigmoid(sum);
     }
     
@@ -317,8 +336,26 @@ const std::vector<float>* MLPLayer::fire(const std::vector<float>& inputs)
 
 inline float sigmoid(float x)
 {
-    float rval =  1/(1 + exp(-x));
+    auto rval =  1.0/(1 + exp(-x));
     return rval;
+}
+
+template <typename T>
+inline float argmax(const std::vector<T>& v)
+{
+    auto max = v[0];
+    auto maxIndex = 0;
+    
+    for (auto i = 1; i < v.size(); i++)
+    {
+        if (v[i] > max)
+        {
+            max = v[i];
+            maxIndex = i;
+        }
+    }
+    
+    return maxIndex;
 }
 
 inline float err(float d, float y, float epsilon)
@@ -337,5 +374,5 @@ inline float mse(float d, float y, float epsilon)
     {
         return 0;
     }
-    return pow(error, 2);
+    return 0.5 * pow(error, 2);
 }

@@ -30,8 +30,7 @@ private:
     float validateModel(
        std::vector< std::vector<float> >& X,
        std::vector< std::vector<int> >& d,
-       int firstValidationIndex,
-       float* percentageCorrect);
+       int firstValidationIndex);
     
     void batchUpdate(
         std::vector< std::vector<float> >& X,
@@ -46,7 +45,7 @@ public:
         bool verbose=false);
 
     void addLayer(int newNumOutputs, float learningRate, float momentum);
-    std::vector<float> predict(const std::vector<float>& inputs);
+    const std::vector<float>& predict(const std::vector<float>& inputs);
     void train(
         std::vector< std::vector<float> >& X,
         std::vector< std::vector<int> >& d);
@@ -81,7 +80,7 @@ public:
              float _learningRate,
              float _momentum);
     const std::vector<float>* fire(const std::vector<float>& inputs);
-    const std::vector<float>& getPreviousOutputs() const
+    const std::vector<float>& getOutputs() const
     {
         return outputs;
     }
@@ -116,5 +115,18 @@ public:
 float sigmoid(float x);
 float err(float d, float y, float epsilon=0);
 float mse(float d, float y, float epsilon=0);
+
+template <typename T>
+float argmax(const std::vector<T>& v);
+
+template <typename T>
+std::ostream& operator<<(std::ostream& output, std::vector<T> const& values)
+{
+    for (auto const& value : values)
+    {
+        output << value << " ";
+    }
+    return output;
+}
 
 #endif /* MLP_hpp */
