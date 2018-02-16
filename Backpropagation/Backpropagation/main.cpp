@@ -72,6 +72,9 @@ void parseData(
 
 int main(int argc, const char * argv[])
 {
+    // No calls to C style i/o, so this should improve performance
+    std::ios_base::sync_with_stdio(false);
+
     // Initialize variables
     const auto numInputs = 5;
     const auto numEpochs = 55;

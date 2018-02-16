@@ -104,8 +104,7 @@ MulticlassNeuralNetwork::batchUpdate(const std::vector< std::vector<float> >& X,
         auto& expected = d[i];
         
         // Adjust output layer
-        auto lastIndex = layers.size() - 1;
-        layers[lastIndex].adjustAsOutputLayer(expected, layers[lastIndex - 1].getOutputs());
+        layers.back().adjustAsOutputLayer(expected, layers[layers.size() - 2].getOutputs());
         
         // Adjust hidden nodes
         for (auto j = layers.size() - 2; j > 0; j--)
@@ -321,10 +320,7 @@ void MulticlassNeuralNetwork::evaluate(const std::vector< std::vector<float> > &
             // + 0 if predicts 0, + 1 if prediction is 1
             // + 2 to that if the prediction is incorrect
             auto confusionIndex = j * entries + predicted[j];
-            if (predicted[j] != expected[j])
-            {
-                confusionIndex += 2;
-            }
+            confusionIndex += predicted[j] != expected[j] ? 2 : 0;
             confusionMatrices[confusionIndex]++;
         }
     }
@@ -334,7 +330,7 @@ void MulticlassNeuralNetwork::evaluate(const std::vector< std::vector<float> > &
     std::cout << "TN FP\nFN TP\n\n";
     for (auto i = 0; i < numOutputs; i++)
     {
-        int index = i * numOutputs;
+        auto index = i * numOutputs;
         auto tn = confusionMatrices[index + 0];
         auto tp = confusionMatrices[index + 1];
         auto fp = confusionMatrices[index + 2];
