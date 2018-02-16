@@ -303,7 +303,8 @@ void MulticlassNeuralNetwork::evaluate(const std::vector< std::vector<float> > &
                    const std::vector< std::vector<int> > &d)
 {
     const auto entries = 4;
-    std::vector<int> confusionMatrices(this->numOutputs * entries, 0);
+    std::vector<int> confusionMatrices(numOutputs * entries, 0);
+
     for (auto i = 0; i < X.size(); i++)
     {
         auto predicted = predict(X[i]);
@@ -316,12 +317,10 @@ void MulticlassNeuralNetwork::evaluate(const std::vector< std::vector<float> > &
         
         for (auto j = 0; j < numOutputs; j++)
         {
-            auto confusionIndex = j * entries;
-            
             // Stored as [... TN, TP, FN, FP ..]
             // + 0 if predicts 0, + 1 if prediction is 1
             // + 2 to that if the prediction is incorrect
-            confusionIndex += predicted[j];
+            auto confusionIndex = j * entries + predicted[j];
             if (predicted[j] != expected[j])
             {
                 confusionIndex += 2;
@@ -329,7 +328,7 @@ void MulticlassNeuralNetwork::evaluate(const std::vector< std::vector<float> > &
             confusionMatrices[confusionIndex]++;
         }
     }
-    
+
     std::cout << "Results: \n";
     std::cout << "n = " << X.size() << std::endl;
     std::cout << "TN FP\nFN TP\n\n";
