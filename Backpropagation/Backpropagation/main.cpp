@@ -73,7 +73,7 @@ void parseData(
 int main(int argc, const char * argv[])
 {
     // Initialize variables
-    const auto numInputs = 4;
+    const auto numInputs = 5;
     const auto numEpochs = 60;
     const auto batchSize = 30;
     const auto epsilon = 0.2;
