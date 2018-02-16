@@ -6,10 +6,10 @@
 //  Copyright © 2018 Viraj. All rights reserved.
 //
 
-#include "MLP.hpp"
+#include "MulticlassNeuralNetwork.hpp"
 #include <math.h>
 
-MLP::MLP(
+MulticlassNeuralNetwork::MulticlassNeuralNetwork(
     int _numInputs,
     int _batchSize,
     int _epochs,
@@ -26,15 +26,15 @@ MLP::MLP(
     srand(0);
 };
 
-void MLP::addLayer(int newNumOutputs, float learningRate, float momentum)
+void MulticlassNeuralNetwork::addLayer(int newNumOutputs, float learningRate, float momentum)
 {
     // TODO: Use heap if this is too slow
-    MLPLayer newLayer(numOutputs, newNumOutputs, learningRate, momentum);
+    MNNLayer newLayer(numOutputs, newNumOutputs, learningRate, momentum);
     layers.push_back(newLayer);
     numOutputs = newNumOutputs;
 }
 
-void MLP::printWeights() const {
+void MulticlassNeuralNetwork::printWeights() const {
     auto i = 0;
     for (auto& l : layers)
     {
@@ -49,7 +49,7 @@ void MLP::printWeights() const {
     }
 }
 
-const std::vector<float>& MLP::predict(const std::vector<float>& inputs)
+const std::vector<float>& MulticlassNeuralNetwork::predict(const std::vector<float>& inputs)
 {
     // Buf is a pointer to the most recent output vector. Buf can be passed
     // When a neuron fires
@@ -61,7 +61,7 @@ const std::vector<float>& MLP::predict(const std::vector<float>& inputs)
     return layers.back().getOutputs();
 }
 
-void MLP::train(
+void MulticlassNeuralNetwork::train(
    const std::vector< std::vector<float> >& X,
    const std::vector< std::vector<int> >& d)
 {
@@ -84,7 +84,7 @@ void MLP::train(
 }
 
 void
-MLP::batchUpdate(const std::vector< std::vector<float> >& X,
+MulticlassNeuralNetwork::batchUpdate(const std::vector< std::vector<float> >& X,
                  const std::vector< std::vector<int> >& d,
                  int lastTrainingIndex)
 {
@@ -139,7 +139,7 @@ MLP::batchUpdate(const std::vector< std::vector<float> >& X,
 }
 
 inline void
-MLP::validateModel(const std::vector< std::vector<float> >& X,
+MulticlassNeuralNetwork::validateModel(const std::vector< std::vector<float> >& X,
                    const std::vector< std::vector<int> >& d,
                    int firstValidationIndex,
                    float* rval)
@@ -172,7 +172,7 @@ MLP::validateModel(const std::vector< std::vector<float> >& X,
 
 
 
-MLPLayer::MLPLayer(int _numInputs,
+MNNLayer::MNNLayer(int _numInputs,
                    int _numOutputs,
                    float _learningRate,
                    float _momentum) :
@@ -212,7 +212,7 @@ MLPLayer::MLPLayer(int _numInputs,
  * dw5 = c * delta0 * x2
  */
 void
-MLPLayer::adjustAsOutputLayer(const std::vector<int>& expected,
+MNNLayer::adjustAsOutputLayer(const std::vector<int>& expected,
                               const std::vector<float>& inputs)
 {
     for (auto i = 0; i < numOutputs; i++)
@@ -248,7 +248,7 @@ MLPLayer::adjustAsOutputLayer(const std::vector<int>& expected,
  *  delta0 = delta0' * w0'  + delta1' * w3'
  */
 void
-MLPLayer::adjustAsHiddenLayer(const MLPLayer& nextLayer,
+MNNLayer::adjustAsHiddenLayer(const MNNLayer& nextLayer,
                               const std::vector<float>& inputs)
 {
     // Plus one because the next layer will have an implicit bias node
@@ -299,7 +299,7 @@ MLPLayer::adjustAsHiddenLayer(const MLPLayer& nextLayer,
  * This is stored as
  * [TN TP FN FP ...]
  */
-void MLP::evaluate(const std::vector< std::vector<float> > &X,
+void MulticlassNeuralNetwork::evaluate(const std::vector< std::vector<float> > &X,
                    const std::vector< std::vector<int> > &d)
 {
     const auto entries = 4;
@@ -314,7 +314,7 @@ void MLP::evaluate(const std::vector< std::vector<float> > &X,
         std::fill(predicted.begin(), predicted.end(), 0);
         predicted[trueIndex] = 1;
         
-        for (auto j = 0; j < predicted.size(); j++)
+        for (auto j = 0; j < numOutputs; j++)
         {
             auto confusionIndex = j * entries;
             
@@ -351,7 +351,7 @@ void MLP::evaluate(const std::vector< std::vector<float> > &X,
     }
 }
 
-void MLPLayer::applyMomentum()
+void MNNLayer::applyMomentum()
 {
     for (auto& dw : dWeights)
     {
@@ -359,7 +359,7 @@ void MLPLayer::applyMomentum()
     }
 }
 
-void MLPLayer::updateWeights()
+void MNNLayer::updateWeights()
 {
     for (auto i = 0; i < dWeights.size(); i++)
     {
@@ -382,7 +382,7 @@ void MLPLayer::updateWeights()
  * numInputs is the number of columns, numOutputs is the number of
  * rows.
  */
-const std::vector<float>* MLPLayer::fire(const std::vector<float>& inputs)
+const std::vector<float>* MNNLayer::fire(const std::vector<float>& inputs)
 {
     if (inputs.size() + 1 != numInputs)
     {

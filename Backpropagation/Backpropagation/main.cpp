@@ -12,7 +12,7 @@
 #include <sstream>
 #include <vector>
 
-#include "MLP.hpp"
+#include "MulticlassNeuralNetwork.hpp"
 
 using std::string;
 using std::cout;
@@ -74,7 +74,7 @@ int main(int argc, const char * argv[])
 {
     // Initialize variables
     const auto numInputs = 4;
-    const auto numEpochs = 75;
+    const auto numEpochs = 60;
     const auto batchSize = 30;
     const auto epsilon = 0.2;
     std::vector< std::vector<float> > inputs;
@@ -88,20 +88,20 @@ int main(int argc, const char * argv[])
     
     // Initial model parameters. Add +1 for the bias
     // Number of inputs, batch size, epochs
-    MLP mlp(numInputs, batchSize, numEpochs, epsilon);
-//    mlp.addLayer(4, 0.1, 0.1);
-    mlp.addLayer(6, 0.1, 0.2);
-    mlp.addLayer(3, 0.1, 0.2);
+    MulticlassNeuralNetwork mnn(numInputs, batchSize, numEpochs, epsilon);
+    mnn.addLayer(4, 0.1, 0.1);
+    mnn.addLayer(10, 0.1, 0.2);
+    mnn.addLayer(3, 0.1, 0.2);
 
     // Print initial weights
     std::cout << "Initial Weights" << std::endl;
-    mlp.printWeights();
+    mnn.printWeights();
     std::cout << std::endl;
     
     // Train the model
-    mlp.train(inputs, outputs);
+    mnn.train(inputs, outputs);
     std::cout << "Weights after training" << std::endl;
-    mlp.printWeights();
+    mnn.printWeights();
     std::cout << std::endl;
     
     // Loading testing data
@@ -110,7 +110,7 @@ int main(int argc, const char * argv[])
     parseData<numInputs>("./data/testing.csv", &inputs, &outputs);
     
     // Evaluate the model (prints results)
-    mlp.evaluate(inputs, outputs);
+    mnn.evaluate(inputs, outputs);
 
     return 0;
 }

@@ -1,22 +1,25 @@
 //
-//  MLP.hpp
-//  Backpropagation
+//  MulticlassNeuralNetwork.hpp
+//
+//  Neural network with a configurable number of layers best suited for
+//  multi-class (binary) predictions. Using backpropagation with sigmoid
+//  and momentum.
 //
 //  Created by Viraj Bangari on 2018-02-11.
 //  Copyright © 2018 Viraj. All rights reserved.
 //
 
-#ifndef MLP_hpp
-#define MLP_hpp
+#ifndef MulticlassNeuralNetwork_hpp
+#define MulticlassNeuralNetwork_hpp
 
 #include <stdio.h>
 #include <vector>
 #include <iostream>
 
-class MLPLayer;
-class MLP;
+class MNNLayer;
+class MulticlassNeuralNetwork;
 
-class MLP
+class MulticlassNeuralNetwork
 {
 private:
     int numInputs;
@@ -25,7 +28,7 @@ private:
     int batchSize;
     int epochs;
     bool verbose;
-    std::vector<MLPLayer> layers;
+    std::vector<MNNLayer> layers;
     
     void validateModel(
        const std::vector< std::vector<float> >& X,
@@ -38,7 +41,7 @@ private:
         const std::vector< std::vector<int> >& d,
         int lastTrainingIndex);
 public:
-    MLP(
+    MulticlassNeuralNetwork(
         int _numInputs,
         int _batchSize,
         int _epochs,
@@ -65,7 +68,7 @@ public:
  * This increases the amound of memory, but should decrease the
  * computation time.
  */
-class MLPLayer
+class MNNLayer
 {
 private:
     const int numInputs;
@@ -78,7 +81,7 @@ private:
     std::vector<float> dWeights;
 
 public:
-    MLPLayer(int _numInputs,
+    MNNLayer(int _numInputs,
              int _numOutputs,
              float _learningRate,
              float _momentum);
@@ -110,7 +113,7 @@ public:
     void applyMomentum();
     void adjustAsOutputLayer(const std::vector<int>& expected,
                              const std::vector<float>& inputs);
-    void adjustAsHiddenLayer(const MLPLayer& nextLayer,
+    void adjustAsHiddenLayer(const MNNLayer& nextLayer,
                              const std::vector<float>& inputs);
     void updateWeights();
 };
@@ -132,4 +135,4 @@ std::ostream& operator<<(std::ostream& output, std::vector<T> const& values)
     return output;
 }
 
-#endif /* MLP_hpp */
+#endif /* MulticlassNeuralNetwork_hpp */
