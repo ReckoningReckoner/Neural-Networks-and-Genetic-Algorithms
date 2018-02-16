@@ -62,8 +62,8 @@ const std::vector<float>& MLP::predict(const std::vector<float>& inputs)
 }
 
 void MLP::train(
-   std::vector< std::vector<float> >& X,
-   std::vector< std::vector<int> >& d)
+   const std::vector< std::vector<float> >& X,
+   const std::vector< std::vector<int> >& d)
 {
     if (X.size() != d.size())
     {
@@ -74,15 +74,18 @@ void MLP::train(
     auto lastTrainingIndex = (int)(0.8 * X.size());
     for (auto epoch = 0; epoch < epochs; epoch++)
     {
+        float rval[2];
         batchUpdate(X, d, lastTrainingIndex);
-        auto accuracy = validateModel(X, d, 0);
-        std::cout << "Epoch: " << epoch << ", Accuracy: " << accuracy << '\n';
+        validateModel(X, d, lastTrainingIndex + 1, rval);
+        auto accuracy = rval[0];
+        auto error = rval[1];
+        std::cout << "Epoch: " << epoch << " Accuracy: " << accuracy << " Error: " << error << '\n';
     }
 }
 
 void
-MLP::batchUpdate(std::vector< std::vector<float> >& X,
-                 std::vector< std::vector<int> >& d,
+MLP::batchUpdate(const std::vector< std::vector<float> >& X,
+                 const std::vector< std::vector<int> >& d,
                  int lastTrainingIndex)
 {
     // Apply momentum based on the stored previous dWeights
@@ -135,12 +138,14 @@ MLP::batchUpdate(std::vector< std::vector<float> >& X,
     }
 }
 
-inline float
-MLP::validateModel(std::vector< std::vector<float> >& X,
-                   std::vector< std::vector<int> >& d,
-                   int firstValidationIndex)
+inline void
+MLP::validateModel(const std::vector< std::vector<float> >& X,
+                   const std::vector< std::vector<int> >& d,
+                   int firstValidationIndex,
+                   float* rval)
 {
     auto accuracy = 0.0;
+    auto error = 0.0;
     for (auto i = firstValidationIndex; i < X.size(); i++)
     {
         auto& input = X[i];
@@ -154,9 +159,15 @@ MLP::validateModel(std::vector< std::vector<float> >& X,
             std::cout << std::endl;
         }
         accuracy += argmax(predicted) == argmax(expected);
+        
+        for (auto i = 0; i < expected.size(); i++)
+        {
+            error += mse(expected[i], predicted[i], epsilon);
+        }
     }
-
-    return accuracy/X.size();
+    
+    rval[0] = accuracy /= (X.size() - firstValidationIndex);
+    rval[1] = error;
 }
 
 
@@ -275,6 +286,68 @@ MLPLayer::adjustAsHiddenLayer(const MLPLayer& nextLayer,
         
         // Apply weight change to bias weight
         dWeights[i * numInputs + numInputs - 1] += learningRate * deltas[i];
+    }
+}
+
+/*
+ * Generates a confusion matrix.
+ * Typical confusion matrix is stored in memory as:
+ * TN FP
+ * FN TP
+ * n
+ *
+ * This is stored as
+ * [TN TP FN FP ...]
+ */
+void MLP::evaluate(const std::vector< std::vector<float> > &X,
+                   const std::vector< std::vector<int> > &d)
+{
+    const auto entries = 4;
+    std::vector<int> confusionMatrices(this->numOutputs * entries, 0);
+    for (auto i = 0; i < X.size(); i++)
+    {
+        auto predicted = predict(X[i]);
+        auto& expected = d[i];
+        
+        // Convert predicte value to 1 hot encoding
+        auto trueIndex = argmax(predicted);
+        std::fill(predicted.begin(), predicted.end(), 0);
+        predicted[trueIndex] = 1;
+        
+        for (auto j = 0; j < predicted.size(); j++)
+        {
+            auto confusionIndex = j * entries;
+            
+            // Stored as [... TN, TP, FN, FP ..]
+            // + 0 if predicts 0, + 1 if prediction is 1
+            // + 2 to that if the prediction is incorrect
+            confusionIndex += predicted[j];
+            if (predicted[j] != expected[j])
+            {
+                confusionIndex += 2;
+            }
+            confusionMatrices[confusionIndex]++;
+        }
+    }
+    
+    std::cout << "Results: \n";
+    std::cout << "n = " << X.size() << std::endl;
+    std::cout << "TN FP\nFN TP\n\n";
+    for (auto i = 0; i < numOutputs; i++)
+    {
+        int index = i * numOutputs;
+        auto tn = confusionMatrices[index + 0];
+        auto tp = confusionMatrices[index + 1];
+        auto fp = confusionMatrices[index + 2];
+        auto fn = confusionMatrices[index + 3];
+        auto precision = 1.0 * tp/(tp + fp);
+        auto recall = 1.0 * tp/(tp + fn);
+
+        std::cout << "Class " << i << std::endl;
+        std::cout << tn << " " << fp << std::endl;
+        std::cout << fn << " " << tp << std::endl;
+        std::cout << "Precision: " << precision << " Recall: ";
+        std::cout << recall << "\n\n";
     }
 }
 

@@ -27,14 +27,15 @@ private:
     bool verbose;
     std::vector<MLPLayer> layers;
     
-    float validateModel(
-       std::vector< std::vector<float> >& X,
-       std::vector< std::vector<int> >& d,
-       int firstValidationIndex);
+    void validateModel(
+       const std::vector< std::vector<float> >& X,
+       const std::vector< std::vector<int> >& d,
+       int firstValidationIndex,
+       float* rvals);
     
     void batchUpdate(
-        std::vector< std::vector<float> >& X,
-        std::vector< std::vector<int> >& d,
+        const std::vector< std::vector<float> >& X,
+        const std::vector< std::vector<int> >& d,
         int lastTrainingIndex);
 public:
     MLP(
@@ -47,10 +48,12 @@ public:
     void addLayer(int newNumOutputs, float learningRate, float momentum);
     const std::vector<float>& predict(const std::vector<float>& inputs);
     void train(
-        std::vector< std::vector<float> >& X,
-        std::vector< std::vector<int> >& d);
+        const std::vector< std::vector<float> >& X,
+        const std::vector< std::vector<int> >& d);
     void printWeights() const;
     void train(std::vector<float>& X, std::vector<int>& d);
+    void evaluate(const std::vector< std::vector<float> >& X,
+                  const std::vector< std::vector<int> >& d);
 };
 
 /*
@@ -68,7 +71,7 @@ private:
     const int numInputs;
     const int numOutputs;
     const float learningRate;
-    const float momentum;
+    float momentum;
     std::vector<float> weights;
     std::vector<float> outputs;
     std::vector<float> deltas;

@@ -23,8 +23,8 @@ using std::cout;
 template <int numInputs>
 void parseData(
     std::string filename,
-    std::vector< std::vector<float> >& inputs,
-    std::vector< std::vector<int> >& outputs)
+    std::vector< std::vector<float> >* inputs,
+    std::vector< std::vector<int> >* outputs)
 {
     std::ifstream file;
     file.open(filename);
@@ -40,11 +40,11 @@ void parseData(
 
         // Load the input vector;
         std::vector<float> v(numInputs, 0);
-        inputs.push_back(v);
+        inputs->push_back(v);
         for (int i  = 0; i < numInputs; i++)
         {
             std::getline(line, buf, ',');
-            inputs[inputs.size() - 1][i] = stod(buf);
+            (*inputs)[inputs->size() - 1][i] = stod(buf);
         }
 
         // Load an output vector
@@ -53,13 +53,13 @@ void parseData(
         switch (val)
         {
             case 5:
-                outputs.push_back({0, 0, 1});
+                outputs->push_back({0, 0, 1});
                 break;
             case 7:
-                outputs.push_back({0, 1, 0});
+                outputs->push_back({0, 1, 0});
                 break;
             case 8:
-                outputs.push_back({1, 0, 0});
+                outputs->push_back({1, 0, 0});
                 break;
             default:
                 cout << "Undefined output value: " << buf;
@@ -72,30 +72,45 @@ void parseData(
 
 int main(int argc, const char * argv[])
 {
+    // Initialize variables
     const auto numInputs = 4;
-    
-    // Load the training data
-    cout << "Loading training data...\n";
+    const auto numEpochs = 75;
+    const auto batchSize = 30;
+    const auto epsilon = 0.2;
     std::vector< std::vector<float> > inputs;
     std::vector< std::vector<int> > outputs;
 
-    // In the training data, the csv has 5 input values and one output value.
-    parseData<numInputs>("./data/training.csv", inputs, outputs);
-    std::cout << "Loaded " << inputs.size()
-              << " inputs and " << outputs.size() << " outputs\n";
+    // Load the training data
+    cout << "Loading training data...\n";
+    parseData<numInputs>("./data/training.csv", &inputs, &outputs);
+    std::cout << "Loaded " << inputs.size();
+    std::cout << " inputs and " << outputs.size() << " outputs\n";
     
     // Initial model parameters. Add +1 for the bias
     // Number of inputs, batch size, epochs
-    MLP mlp(numInputs, 30, 20, 0.2, false);
-    mlp.addLayer(6, 0.1, 0.0);
-    mlp.addLayer(3, 0.1, 0.0);
+    MLP mlp(numInputs, batchSize, numEpochs, epsilon);
+//    mlp.addLayer(4, 0.1, 0.1);
+    mlp.addLayer(6, 0.1, 0.2);
+    mlp.addLayer(3, 0.1, 0.2);
 
     // Print initial weights
+    std::cout << "Initial Weights" << std::endl;
     mlp.printWeights();
     std::cout << std::endl;
     
+    // Train the model
     mlp.train(inputs, outputs);
+    std::cout << "Weights after training" << std::endl;
     mlp.printWeights();
+    std::cout << std::endl;
     
+    // Loading testing data
+    inputs.clear();
+    outputs.clear();
+    parseData<numInputs>("./data/testing.csv", &inputs, &outputs);
+    
+    // Evaluate the model (prints results)
+    mlp.evaluate(inputs, outputs);
+
     return 0;
 }
