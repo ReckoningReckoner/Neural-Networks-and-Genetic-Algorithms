@@ -77,7 +77,7 @@ int main(int argc, const char * argv[])
 
     // Initialize variables
     const auto numInputs = 5;
-    const auto numEpochs = 55;
+    const auto numEpochs = 100;
     const auto batchSize = 30;
     const auto epsilon = 0.2;
     std::vector< std::vector<float> > inputs;
@@ -93,8 +93,8 @@ int main(int argc, const char * argv[])
     // Number of inputs, batch size, epochs
     MulticlassNeuralNetwork mnn(numInputs, batchSize, numEpochs, epsilon);
     mnn.addLayer(4, 0.1, 0.1);
-    mnn.addLayer(10, 0.05, 0.1);
-    mnn.addLayer(3, 0.05, 0.1);
+    mnn.addLayer(10, 0.1, 0.1);
+    mnn.addLayer(3, 0.1, 0.1);
 
     // Print initial weights
     std::cout << "Initial Weights" << std::endl;

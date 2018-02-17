@@ -313,6 +313,9 @@ void MulticlassNeuralNetwork::evaluate(const std::vector< std::vector<float> > &
         auto trueIndex = argmax(predicted);
         std::fill(predicted.begin(), predicted.end(), 0);
         predicted[trueIndex] = 1;
+
+        std::cout << "Expected: " << expected << std::endl;
+        std::cout << "Predicted: " << predicted << std::endl;
         
         for (auto j = 0; j < numOutputs; j++)
         {
