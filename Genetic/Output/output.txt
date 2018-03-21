@@ -1,0 +1,8 @@
+Performing PCA for first component
+Learning rate: 0.1
+Epsilon: 0.01
+Initial weights:
+[[1. 0.]]
+Finished after 1 iterations
+Final weights:
+[[-0.67493561  0.73788127]]
